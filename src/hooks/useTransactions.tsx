@@ -1,5 +1,6 @@
+import { useContext } from 'react';
 import { createContext, useEffect, useState, ReactNode } from 'react';
-import { api } from './services/api';
+import { api } from '../services/api';
 
 //MUITO IMPORTANTE: conceito da IMUTABILIDADE do REACT
 // Não podemos mudar nada de estado via push() ou outro método => tem que usar o SETCONTEXT
@@ -23,9 +24,7 @@ interface Transaction {
     createdAt: string;
 }
 
-
-//OU 
-type CreateTransaction2 = Omit<Transaction, 'id' | 'createdAt'>;//Pick => é o contrário
+//OU => type CreateTransaction2 = Omit<Transaction, 'id' | 'createdAt'>;//Pick => é o contrário
 interface CreateTransaction {
     title: string;
     type: string;
@@ -33,15 +32,25 @@ interface CreateTransaction {
     amount: number;
 }
 
-// export const TransactionContext = createContext<Transaction[]>([]);//[] = valor inicial default
-
-
 interface TransactionsContextData {
     transactions: Array<Transaction>;
     createTransaction: (transation: CreateTransaction) => Promise<void>;
 
 }
-export const TransactionContext = createContext<TransactionsContextData>({} as TransactionsContextData);//[] = valor inicial default
+
+//=========================================================================================
+//--------Create Context
+//=========================================================================================
+
+
+// export const TransactionContext = createContext<Transaction[]>([]);//[] = valor inicial default
+//tirou export
+const TransactionContext = createContext<TransactionsContextData>({} as TransactionsContextData);//[] = valor inicial default
+
+
+//=========================================================================================
+//--------Create Provider Method
+//=========================================================================================
 
 interface TransactionsProviderProps {
     children: ReactNode;
@@ -49,20 +58,17 @@ interface TransactionsProviderProps {
 export function TransactionsProvider({ children }: TransactionsProviderProps) {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
 
-    // useEffect(() => {
-    //     api.get('/transactions')
-    //         .then(response => { response.json() })
-    //         .then((data) => { console.log(data) })
-    // }, []);
 
+    //LIST => [] = já no início
     useEffect(() => {
         api.get('transactions')
             .then(response => setTransactions(response.data.transactions))
     }, []);
 
 
+    //CREATE
     async function createTransaction(transactionInput: CreateTransaction) {
-        const response = await api.post('/transactions', { ...transactionInput, creaedAt: new Date() });
+        const response = await api.post('/transactions', { ...transactionInput, createdAt: new Date() });
         const { transaction } = response.data;
 
         //Conceito de imutabilidade: copia o que já tem e adiciona o novo
@@ -70,7 +76,7 @@ export function TransactionsProvider({ children }: TransactionsProviderProps) {
             ...transactions,
             transaction,
         ])
-        // console.log('Submit', transaction)
+
     }
 
     //TransactionContext.Provider fica aqui e pegamos TransactionsProvider no APP tsx
@@ -79,4 +85,18 @@ export function TransactionsProvider({ children }: TransactionsProviderProps) {
             {children}
         </TransactionContext.Provider>
     )
+}
+
+
+
+//=========================================================================================
+//--------HOOK
+//=========================================================================================
+
+export function useTransactions() {
+
+    const context = useContext(TransactionContext);
+
+    return context;
+
 }
